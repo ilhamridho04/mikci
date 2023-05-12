@@ -1,17 +1,20 @@
-# Base image
 FROM php:7.4-fpm
 
-# Install required extensions
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# Install required packages
+RUN apt-get update && apt-get install -y \
+    nginx \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    unzip \
+    && docker-php-ext-install pdo_mysql mysqli gd zip
 
-# Install nginx
-RUN apt-get update && apt-get install -y nginx
-
-# Copy nginx configuration file
+# Copy Nginx configuration file
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copy codeigniter files to the nginx document root
-COPY mikci /var/www/html/
+# Copy CodeIgniter application files
+COPY mikci/ /var/www/html/
 
 # Install phpMyAdmin
 RUN apt-get update && \
@@ -24,22 +27,27 @@ RUN apt-get update && \
 # Copy phpMyAdmin configuration file
 COPY phpmyadmin/config.inc.php /var/www/html/phpmyadmin/
 
-# Install MySQL
-RUN apt-get update && \
-    apt-get install -y mysql-server
-
-# Copy MySQL configuration file
-COPY mysql/my.cnf /etc/mysql/my.cnf
-
 # Set environment variables
 ENV MYSQL_ROOT_PASSWORD=root
 ENV MYSQL_DATABASE=mikci
-ENV MYSQL_USER=root
-ENV MYSQL_PASSWORD=
+ENV MYSQL_USER=mikci_user
+ENV MYSQL_PASSWORD=mikci_password
+
+# Install MariaDB
+RUN apt-get update && apt-get install -y mariadb-server && \
+    rm -rf /var/lib/mysql && \
+    mkdir -p /var/run/mysqld && \
+    chown -R mysql:mysql /var/run/mysqld /var/lib/mysql /etc/mysql/
+
+# Copy my.cnf file for MySQL configuration
+COPY mysql/my.cnf /etc/mysql/my.cnf
+
+# Initialize MariaDB database
+RUN service mysql start && mysql -u root -e "CREATE DATABASE mikci; GRANT ALL PRIVILEGES ON mikci.* TO 'mikci_user'@'localhost' IDENTIFIED BY 'mikci_password'; FLUSH PRIVILEGES;"
 
 # Expose ports
 EXPOSE 80
 EXPOSE 3306
 
-# Start nginx and MySQL services
-CMD service nginx start && service mysql start && tail -f /dev/null
+# Start services
+CMD service nginx start && service mysql start && php-fpm
