@@ -1,33 +1,49 @@
-# Base image
-FROM ubuntu:20.04
+# Set the base image
+FROM nginx:latest
 
-# Update package lists
-RUN apt-get update
+# Update packages and install necessary libraries
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    git \
+    libmcrypt-dev \
+    libicu-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    php7.4 \
+    php7.4-fpm \
+    php7.4-mysql \
+    php7.4-intl \
+    php7.4-mbstring \
+    php7.4-xml \
+    php7.4-zip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-RUN apt-get install -y nginx php7.4-fpm php7.4-mysql php7.4-curl php7.4-gd php7.4-mbstring php7.4-xml php7.4-zip mysql-client
+# Install composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Add custom NGINX configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Create necessary directories for PHP-FPM
+RUN mkdir -p /run/php && chown www-data:www-data /run/php
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy Codeigniter app
+# Copy CodeIgniter app files to working directory
 COPY . /var/www/html/
 
-# Configure Nginx
-COPY ./nginx.conf /etc/nginx/nginx.conf
-RUN rm /etc/nginx/sites-available/default
-RUN rm /etc/nginx/sites-enabled/default
+# Install dependencies
+RUN composer install
 
-# Configure PHP
-RUN sed -i "s/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/" /etc/php/7.4/fpm/php.ini
-
-# Install PHPMyAdmin
-RUN apt-get install -y phpmyadmin
-RUN ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
+# Set permissions for CodeIgniter files
+RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
 
 # Expose ports
 EXPOSE 80
-EXPOSE 3306
 
-# Start services
-CMD service php7.4-fpm start && service nginx start && service mysql start && tail -f /dev/null
+# Start NGINX and PHP-FPM
+CMD service php7.4-fpm start && nginx -g 'daemon off;'
