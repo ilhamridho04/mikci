@@ -1,42 +1,40 @@
-FROM nginx:latest
+FROM ubuntu:18.04
 
-RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    unzip \
-    php7.4 \
-    php7.4-fpm \
-    php7.4-mysql \
-    php7.4-curl \
-    php7.4-json \
-    php7.4-gd \
-    php7.4-mbstring \
-    php7.4-xml \
-    php7.4-zip \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Set environment variables
+ENV DB_NAME=mikci \
+    DB_USER=root \
+    DB_PASSWORD=mikci123 \
+    PMA_ARBITRARY=1 \
+    PMA_HOST=localhost \
+    PMA_USER=root \
+    PMA_PASSWORD=mikci123 \
+    TERM=xterm
 
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Install dependencies
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y install \
+        nginx \
+        php-fpm \
+        php-mysql \
+        php-mbstring \
+        php-xml \
+        php-gd \
+        php-zip \
+        mysql-server \
+        phpmyadmin \
+        supervisor && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-COPY default.conf /etc/nginx/conf.d/
+# Copy Nginx configuration
+COPY default.conf /etc/nginx/sites-available/default
 
-WORKDIR /var/www/html
+# Copy supervisor configuration
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-COPY . .
-
-RUN chown -R www-data:www-data /var/www/html && \
-    chmod -R 775 /var/www/html/application/cache && \
-    chmod -R 775 /var/www/html/application/logs && \
-    chmod -R 775 /var/www/html/uploads && \
-    chmod -R 775 /var/www/html/assets && \
-    chmod -R 775 /var/www/html/.git
-
-RUN composer install
-
-RUN mkdir -p /var/www/session && \
-    chown -R www-data:www-data /var/www/session && \
-    chmod -R 775 /var/www/session
-
+# Expose ports
 EXPOSE 80
+EXPOSE 3306
 
-CMD ["nginx", "-g", "daemon off;"]
+# Start supervisor
+CMD ["/usr/bin/supervisord", "-n"]
