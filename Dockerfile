@@ -31,6 +31,12 @@ RUN apt-get update && \
 # Copy MySQL configuration file
 COPY mysql/my.cnf /etc/mysql/my.cnf
 
+# Set environment variables
+ENV MYSQL_ROOT_PASSWORD=root
+ENV MYSQL_DATABASE=mikci
+ENV MYSQL_USER=root
+ENV MYSQL_PASSWORD=
+
 # Expose ports
 EXPOSE 80
 EXPOSE 3306
