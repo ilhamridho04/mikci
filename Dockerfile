@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
 COPY config/nginx.conf /etc/nginx/nginx.conf
 
 # Menyalin kode CodeIgniter ke dalam container
-COPY codeigniter /var/www/html/
+COPY mikci /var/www/html/
 
 # Menyalin PHPMyAdmin ke dalam container
 RUN wget https://files.phpmyadmin.net/phpMyAdmin/5.1.1/phpMyAdmin-5.1.1-all-languages.zip && \
