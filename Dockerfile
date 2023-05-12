@@ -1,49 +1,42 @@
-# Set the base image
 FROM nginx:latest
 
-# Update packages and install necessary libraries
 RUN apt-get update && apt-get install -y \
     curl \
-    gnupg \
     git \
-    libmcrypt-dev \
-    libicu-dev \
-    libzip-dev \
-    zip \
     unzip \
     php7.4 \
     php7.4-fpm \
     php7.4-mysql \
-    php7.4-intl \
+    php7.4-curl \
+    php7.4-json \
+    php7.4-gd \
     php7.4-mbstring \
     php7.4-xml \
     php7.4-zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Add custom NGINX configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY default.conf /etc/nginx/conf.d/
 
-# Create necessary directories for PHP-FPM
-RUN mkdir -p /run/php && chown www-data:www-data /run/php
-
-# Set working directory
 WORKDIR /var/www/html
 
-# Copy CodeIgniter app files to working directory
-COPY . /var/www/html/
+COPY . .
 
-# Install dependencies
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 775 /var/www/html/application/cache && \
+    chmod -R 775 /var/www/html/application/logs && \
+    chmod -R 775 /var/www/html/uploads && \
+    chmod -R 775 /var/www/html/writable && \
+    chmod -R 775 /var/www/html/.git
+
 RUN composer install
 
-# Set permissions for CodeIgniter files
-RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
+RUN mkdir -p /var/www/session && \
+    chown -R www-data:www-data /var/www/session && \
+    chmod -R 775 /var/www/session
 
-# Expose ports
 EXPOSE 80
 
-# Start NGINX and PHP-FPM
-CMD service php7.4-fpm start && nginx -g 'daemon off;'
+CMD ["nginx", "-g", "daemon off;"]
