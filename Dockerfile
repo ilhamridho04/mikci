@@ -28,7 +28,7 @@ RUN chown -R www-data:www-data /var/www/html && \
     chmod -R 775 /var/www/html/application/cache && \
     chmod -R 775 /var/www/html/application/logs && \
     chmod -R 775 /var/www/html/uploads && \
-    chmod -R 775 /var/www/html/writable && \
+    chmod -R 775 /var/www/html/assets && \
     chmod -R 775 /var/www/html/.git
 
 RUN composer install
