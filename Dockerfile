@@ -1,40 +1,39 @@
-FROM ubuntu:18.04
+# Base image
+FROM php:7.4-fpm
 
-# Set environment variables
-ENV DB_NAME=mikci \
-    DB_USER=root \
-    DB_PASSWORD=mikci123 \
-    PMA_ARBITRARY=1 \
-    PMA_HOST=localhost \
-    PMA_USER=root \
-    PMA_PASSWORD=mikci123 \
-    TERM=xterm
+# Install required extensions
+RUN docker-php-ext-install mysqli pdo pdo_mysql
 
-# Install dependencies
+# Install nginx
+RUN apt-get update && apt-get install -y nginx
+
+# Copy nginx configuration file
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy codeigniter files to the nginx document root
+COPY codeigniter /var/www/html/
+
+# Install phpMyAdmin
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get -y install \
-        nginx \
-        php-fpm \
-        php-mysql \
-        php-mbstring \
-        php-xml \
-        php-gd \
-        php-zip \
-        mysql-server \
-        phpmyadmin \
-        supervisor && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    apt-get install -y wget && \
+    wget https://files.phpmyadmin.net/phpMyAdmin/5.1.1/phpMyAdmin-5.1.1-all-languages.tar.gz && \
+    tar -xzf phpMyAdmin-5.1.1-all-languages.tar.gz && \
+    rm phpMyAdmin-5.1.1-all-languages.tar.gz && \
+    mv phpMyAdmin-5.1.1-all-languages /var/www/html/phpmyadmin
 
-# Copy Nginx configuration
-COPY default.conf /etc/nginx/sites-available/default
+# Copy phpMyAdmin configuration file
+COPY phpmyadmin/config.inc.php /var/www/html/phpmyadmin/
 
-# Copy supervisor configuration
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# Install MySQL
+RUN apt-get update && \
+    apt-get install -y mysql-server
+
+# Copy MySQL configuration file
+COPY mysql/my.cnf /etc/mysql/my.cnf
 
 # Expose ports
 EXPOSE 80
 EXPOSE 3306
 
-# Start supervisor
-CMD ["/usr/bin/supervisord", "-n"]
+# Start nginx and MySQL services
+CMD service nginx start && service mysql start && tail -f /dev/null
