@@ -1,33 +1,45 @@
-# menggunakan image base Ubuntu
+# Menggunakan gambar Ubuntu sebagai dasar
 FROM ubuntu:latest
 
-# mengupdate repository Ubuntu dan menginstall paket-paket yang dibutuhkan
-RUN apt-get update && \
-    apt-get install -y nginx php7.4 php7.4-fpm php7.4-mysql php7.4-gd php7.4-mbstring php7.4-xml mysql-server phpmyadmin supervisor && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Memperbarui paket dan menginstal perangkat lunak yang dibutuhkan
+RUN apt-get update && apt-get install -y \
+    nginx \
+    mysql-server \
+    php-fpm \
+    php-mysql \
+    php-mbstring \
+    php-xml \
+    php-curl \
+    php-zip \
+    unzip \
+    wget
 
-# menyalin file konfigurasi Nginx ke dalam container
-COPY nginx.conf /etc/nginx/sites-available/default
+# Menyalin konfigurasi Nginx
+COPY config/nginx.conf /etc/nginx/nginx.conf
 
-# menyalin file konfigurasi Supervisor ke dalam container
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# Menyalin kode CodeIgniter ke dalam container
+COPY codeigniter /var/www/html/
 
-# membuat direktori untuk CodeIgniter
-RUN mkdir -p /var/www/html
+# Menyalin PHPMyAdmin ke dalam container
+RUN wget https://files.phpmyadmin.net/phpMyAdmin/5.1.1/phpMyAdmin-5.1.1-all-languages.zip && \
+    unzip phpMyAdmin-5.1.1-all-languages.zip && \
+    mv phpMyAdmin-5.1.1-all-languages /usr/share/nginx/html/phpmyadmin
 
-# menyalin file CodeIgniter ke dalam direktori /var/www/html
-COPY mikci /var/www/html
+# Menyalin konfigurasi PHPMyAdmin
+COPY config/config.inc.php /usr/share/nginx/html/phpmyadmin/config.inc.php
 
-# menyalin file konfigurasi PHPMyAdmin ke dalam direktori /etc/phpmyadmin
-COPY phpmyadmin/config.inc.php /etc/phpmyadmin/config.inc.php
+# Menyalin konfigurasi MySQL
+COPY config/my.cnf /etc/mysql/my.cnf
 
-# menyalin file konfigurasi MySQL ke dalam direktori /etc/mysql
-COPY mysql/my.cnf /etc/mysql/my.cnf
+# Menyalin script startup
+COPY script/startup.sh /usr/local/bin/startup.sh
 
-# mengekspose port 80 dan 443
+# Memberikan hak akses pada script startup
+RUN chmod +x /usr/local/bin/startup.sh
+
+# Menambahkan port yang akan digunakan
 EXPOSE 80
-EXPOSE 443
+EXPOSE 3306
 
-# menjalankan Nginx dan Supervisor pada saat container dijalankan
-CMD ["/usr/bin/supervisord"]
+# Menjalankan script startup
+CMD ["/usr/local/bin/startup.sh"]
