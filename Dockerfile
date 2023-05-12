@@ -1,53 +1,33 @@
-FROM php:7.4-fpm
+# menggunakan image base Ubuntu
+FROM ubuntu:latest
 
-# Install required packages
-RUN apt-get update && apt-get install -y \
-    nginx \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    unzip \
-    && docker-php-ext-install pdo_mysql mysqli gd zip
-
-# Copy Nginx configuration file
-COPY nginx.conf /etc/nginx/nginx.conf
-
-# Copy CodeIgniter application files
-COPY mikci/ /var/www/html/
-
-# Install phpMyAdmin
+# mengupdate repository Ubuntu dan menginstall paket-paket yang dibutuhkan
 RUN apt-get update && \
-    apt-get install -y wget && \
-    wget https://files.phpmyadmin.net/phpMyAdmin/5.1.1/phpMyAdmin-5.1.1-all-languages.tar.gz && \
-    tar -xzf phpMyAdmin-5.1.1-all-languages.tar.gz && \
-    rm phpMyAdmin-5.1.1-all-languages.tar.gz && \
-    mv phpMyAdmin-5.1.1-all-languages /var/www/html/phpmyadmin
+    apt-get install -y nginx php7.4 php7.4-fpm php7.4-mysql php7.4-gd php7.4-mbstring php7.4-xml mysql-server phpmyadmin supervisor && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy phpMyAdmin configuration file
-COPY phpmyadmin/config.inc.php /var/www/html/phpmyadmin/
+# menyalin file konfigurasi Nginx ke dalam container
+COPY nginx.conf /etc/nginx/sites-available/default
 
-# Set environment variables
-ENV MYSQL_ROOT_PASSWORD=root
-ENV MYSQL_DATABASE=mikci
-ENV MYSQL_USER=mikci_user
-ENV MYSQL_PASSWORD=mikci_password
+# menyalin file konfigurasi Supervisor ke dalam container
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Install MariaDB
-RUN apt-get update && apt-get install -y mariadb-server && \
-    rm -rf /var/lib/mysql && \
-    mkdir -p /var/run/mysqld && \
-    chown -R mysql:mysql /var/run/mysqld /var/lib/mysql /etc/mysql/
+# membuat direktori untuk CodeIgniter
+RUN mkdir -p /var/www/html
 
-# Copy my.cnf file for MySQL configuration
+# menyalin file CodeIgniter ke dalam direktori /var/www/html
+COPY mikci /var/www/html
+
+# menyalin file konfigurasi PHPMyAdmin ke dalam direktori /etc/phpmyadmin
+COPY phpmyadmin/config.inc.php /etc/phpmyadmin/config.inc.php
+
+# menyalin file konfigurasi MySQL ke dalam direktori /etc/mysql
 COPY mysql/my.cnf /etc/mysql/my.cnf
 
-# Initialize MariaDB database
-RUN service mysql start && mysql -u root -e "CREATE DATABASE mikci; GRANT ALL PRIVILEGES ON mikci.* TO 'mikci_user'@'localhost' IDENTIFIED BY 'mikci_password'; FLUSH PRIVILEGES;"
-
-# Expose ports
+# mengekspose port 80 dan 443
 EXPOSE 80
-EXPOSE 3306
+EXPOSE 443
 
-# Start services
-CMD service nginx start && service mysql start && php-fpm
+# menjalankan Nginx dan Supervisor pada saat container dijalankan
+CMD ["/usr/bin/supervisord"]
