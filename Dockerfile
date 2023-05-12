@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy codeigniter files to the nginx document root
-COPY codeigniter /var/www/html/
+COPY . /var/www/html/
 
 # Install phpMyAdmin
 RUN apt-get update && \
