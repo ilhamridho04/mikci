@@ -1,7 +1,11 @@
 # Menggunakan gambar Ubuntu sebagai dasar
 FROM ubuntu:latest
 
+# Install tzdata
 ENV TZ=Asia/Jakarta
+RUN apt-get update && \
+    apt-get install -y tzdata
+
 # Memperbarui paket dan menginstal perangkat lunak yang dibutuhkan
 RUN apt-get update && apt-get install -y \
     nginx \
