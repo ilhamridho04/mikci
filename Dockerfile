@@ -1,6 +1,7 @@
 # Menggunakan gambar Ubuntu sebagai dasar
 FROM ubuntu:latest
 
+ENV TZ=Asia/Jakarta
 # Memperbarui paket dan menginstal perangkat lunak yang dibutuhkan
 RUN apt-get update && apt-get install -y \
     nginx \
