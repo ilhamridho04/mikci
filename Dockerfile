@@ -1,28 +1,36 @@
-FROM ubuntu:latest
+# Base image
+FROM ubuntu:20.04
 
-# Install Nginx
-RUN apt-get update && \
-    apt-get install -y nginx
-    
+# Update package lists
+RUN apt-get update
+
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install PHP-FPM
-RUN apt-get install -y php-fpm
+# Install dependencies
+RUN apt-get install -y nginx php7.4-fpm php7.4-mysql php7.4-curl php7.4-gd php7.4-mbstring php7.4-xml php7.4-zip mysql-client
 
-# Install MySQL Server
-RUN apt-get install -y mysql-server
+# Set working directory
+WORKDIR /var/www/html
 
-# Install phpMyAdmin
+# Copy Codeigniter app
+COPY . /var/www/html/
+
+# Configure Nginx
+COPY ./nginx.conf /etc/nginx/nginx.conf
+RUN rm /etc/nginx/sites-available/default
+RUN rm /etc/nginx/sites-enabled/default
+
+# Configure PHP
+RUN sed -i "s/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/" /etc/php/7.4/fpm/php.ini
+
+# Install PHPMyAdmin
 RUN apt-get install -y phpmyadmin
+RUN ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
 
-# Add CodeIgniter app to container
-ADD codeigniter-app /var/www/html/
+# Expose ports
+EXPOSE 80
+EXPOSE 3306
 
-# Add Nginx configuration file to container
-ADD nginx.conf /etc/nginx/nginx.conf
-
-# Start all services
-CMD service mysql start && \
-    service php7.4-fpm start && \
-    nginx -g 'daemon off;'
+# Start services
+CMD service php7.4-fpm start && service nginx start && service mysql start && tail -f /dev/null
