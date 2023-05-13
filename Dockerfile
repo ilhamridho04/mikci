@@ -1,50 +1,46 @@
-# Menggunakan gambar Ubuntu sebagai dasar
-FROM ubuntu:latest
+# Gunakan base image Ubuntu 20.04
+FROM ubuntu:20.04
 
 # Install tzdata
 ENV TZ=Asia/Jakarta
 RUN apt-get update && \
     apt-get install -y tzdata
 
-# Memperbarui paket dan menginstal perangkat lunak yang dibutuhkan
+# Update package dan install dependensi yang diperlukan
 RUN apt-get update && apt-get install -y \
-    nginx \
-    mysql-server \
-    php-fpm \
+    apache2 \
+    php \
+    libapache2-mod-php \
     php-mysql \
-    php-mbstring \
-    php-xml \
-    php-curl \
-    php-zip \
-    unzip \
-    wget
+    mysql-server \
+    mysql-client \
+    phpmyadmin \
+    && rm -rf /var/lib/apt/lists/*
 
-# Menyalin konfigurasi Nginx
-COPY config/nginx.conf /etc/nginx/nginx.conf
+# Tambahkan file konfigurasi Apache dan PHP
+COPY ./config/000-default.conf /etc/apache2/sites-available/000-default.conf
+COPY ./config/php.ini /etc/php/7.4/apache2/php.ini
 
-# Menyalin kode CodeIgniter ke dalam container
-COPY mikci /var/www/html/
+# Tambahkan file konfigurasi phpMyAdmin
+COPY ./config/config.inc.php /etc/phpmyadmin/config.inc.php
 
-# Menyalin PHPMyAdmin ke dalam container
-RUN wget https://files.phpmyadmin.net/phpMyAdmin/5.1.1/phpMyAdmin-5.1.1-all-languages.zip && \
-    unzip phpMyAdmin-5.1.1-all-languages.zip && \
-    mv phpMyAdmin-5.1.1-all-languages /usr/share/nginx/html/phpmyadmin
+# Buat direktori untuk aplikasi Codeigniter 3
+RUN mkdir -p /var/www/html/mikci
 
-# Menyalin konfigurasi PHPMyAdmin
-COPY config/config.inc.php /usr/share/nginx/html/phpmyadmin/config.inc.php
+# Salin kode aplikasi Codeigniter 3 ke dalam container
+COPY mikci/ /var/www/html/mikci
 
-# Menyalin konfigurasi MySQL
-COPY config/my.cnf /etc/mysql/my.cnf
+# Atur izin akses pada direktori Codeigniter 3
+RUN chown -R www-data:www-data /var/www/html/mikci
+RUN chmod -R 755 /var/www/html/mikci
 
-# Menyalin script startup
-COPY script/startup.sh /usr/local/bin/startup.sh
+# Tambahkan skrip untuk memulai service Apache dan MySQL
+COPY ./scripts/start.sh /start.sh
+RUN chmod +x /start.sh
 
-# Memberikan hak akses pada script startup
-RUN chmod +x /usr/local/bin/startup.sh
-
-# Menambahkan port yang akan digunakan
+# Expose port 80 dan 3306
 EXPOSE 80
 EXPOSE 3306
 
-# Menjalankan script startup
-CMD ["/usr/local/bin/startup.sh"]
+# Jalankan skrip untuk memulai service Apache dan MySQL
+CMD ["/start.sh"]
