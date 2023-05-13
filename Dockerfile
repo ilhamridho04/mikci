@@ -28,7 +28,7 @@ COPY ./config/config.inc.php /etc/phpmyadmin/config.inc.php
 RUN mkdir -p /var/www/html/mikci
 
 # Salin kode aplikasi Codeigniter 3 ke dalam container
-COPY mikci/ /var/www/html/mikci
+COPY .mikci/ /var/www/html/mikci
 
 # Atur izin akses pada direktori Codeigniter 3
 RUN chown -R www-data:www-data /var/www/html/mikci
